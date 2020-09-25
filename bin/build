@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+echo "---> Deno Buildpack"
+
+layersdir=$1
+
+denolayer="${layersdir}/deno"
+mkdir -p "${denolayer}"
+deno_url="https://github.com/denoland/deno/releases/download/v1.4.1/deno-x86_64-unknown-linux-gnu.zip"
+deno_exe="${denolayer}/deno"
+wget -q "${deno_url}" -O "${deno_exe}.gz"
+gunzip -d "${deno_exe}.gz"
+chmod +x "${deno_exe}"
+echo -e 'launch = true' > "${denolayer}.toml"
+export PATH="${denolayer}:${PATH}"
+
+cat > "${layersdir}/launch.toml" <<EOL
+[[processes]]
+type = "web"
+command = "${deno_exe} run --allow-all main.ts"
+EOL
