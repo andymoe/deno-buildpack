@@ -1,9 +1,10 @@
 api = "0.2"
 
 [buildpack]
-  id = "com.example.buildpacks.deno"
+  id = "andymoe/deno-buildpack"
   name = "Deno buildpack"
+  homepage = "https://github.com/andymoe/deno-buildpack"
   version = "0.0.1"
 
 [[stacks]]
-  id = "io.buildpacks.samples.stacks.bionic"
+  id = "io.buildpacks.stacks.bionic"
