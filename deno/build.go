@@ -55,24 +55,41 @@ func Build() packit.BuildFunc {
 		err = exec.Command("curl", "-L", uri,
 			"--output", filepath.Join(downloadDir, "deno.gz")).Run()
 		if err != nil {
-			return packit.BuildResult{}, fmt.Errorf("failed to download deno with error: %v", err)
+			return packit.BuildResult{}, fmt.Errorf("failed to download deno with error: %w", err)
 		}
 
 		fmt.Println("unziping...")
 		err = exec.Command("gunzip", "-d", filepath.Join(downloadDir, "deno.gz")).Run()
 		if err != nil {
-			return packit.BuildResult{}, fmt.Errorf("failed to unzip with error: %v", err)
+			return packit.BuildResult{}, fmt.Errorf("failed to unzip with error: %w", err)
 		}
 
-		err = exec.Command("mv", filepath.Join(downloadDir, "deno"), filepath.Join(denoLayer.Path, "deno")).Run()
+		err = exec.Command("mkdir", "--p", filepath.Join(denoLayer.Path, "bin")).Run()
 		if err != nil {
-			return packit.BuildResult{}, fmt.Errorf("failed moving deno binary to denoLayer path: %v", err)
+			return packit.BuildResult{}, fmt.Errorf("failed to make bin dir in deno layer path: %w", err)
 		}
 
+		err = exec.Command("mv", filepath.Join(downloadDir, "deno"), filepath.Join(denoLayer.Path, "bin", "deno")).Run()
+		if err != nil {
+			return packit.BuildResult{}, fmt.Errorf("failed moving deno binary to denoLayer path: %w", err)
+		}
+
+		err = exec.Command("chmod", "+x", filepath.Join(denoLayer.Path, "bin", "deno")).Run()
+		if err != nil {
+			return packit.BuildResult{}, fmt.Errorf("failed to make deno binary executable: %w", err)
+		}
+
+		command := "deno run --allow-all main.ts"
 		return packit.BuildResult{
 			Plan: context.Plan,
 			Layers: []packit.Layer{
 				denoLayer,
+			},
+			Processes: []packit.Process{
+				{
+					Type:    "web",
+					Command: command,
+				},
 			},
 		}, nil
 	}
