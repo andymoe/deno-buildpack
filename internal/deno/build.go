@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/BurntSushi/toml"
+	"github.com/andymoe/deno-buildpack/internal/metadata"
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/fs"
 )
@@ -15,25 +15,12 @@ import (
 // Build returns a BuildFunc that provides the deno layer
 func Build() packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
-		file, err := os.Open(filepath.Join(context.CNBPath, "buildpack.toml"))
+		config, err := metadata.Read(filepath.Join(context.CNBPath, "buildpack.toml"))
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
 
-		var m struct {
-			Metadata struct {
-				Dependencies []struct {
-					URI string `toml:"uri"`
-				} `toml:"dependencies"`
-			} `toml:"metadata"`
-		}
-
-		_, err = toml.DecodeReader(file, &m)
-		if err != nil {
-			return packit.BuildResult{}, err
-		}
-
-		uri := m.Metadata.Dependencies[0].URI
+		uri := config.Metadata.Dependencies[0].Source
 
 		denoLayer, err := context.Layers.Get("deno", packit.LaunchLayer)
 		if err != nil {

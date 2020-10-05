@@ -13,18 +13,12 @@ import (
 // Detect figures out if we are working with a deno app
 func Detect() packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
+		var r []packit.BuildPlanRequirement
 		ok := DetectDeno(context.WorkingDir)
 		if ok {
-			return packit.DetectResult{
-				Plan: packit.BuildPlan{
-					Provides: []packit.BuildPlanProvision{
-						{Name: "deno"},
-					},
-					Requires: []packit.BuildPlanRequirement{
-						{Name: "deno"},
-					},
-				},
-			}, nil
+			r = append(r, packit.BuildPlanRequirement{
+				Name: "deno",
+			})
 		}
 
 		return packit.DetectResult{
@@ -32,7 +26,7 @@ func Detect() packit.DetectFunc {
 				Provides: []packit.BuildPlanProvision{
 					{Name: "deno"},
 				},
-				Requires: []packit.BuildPlanRequirement{},
+				Requires: r,
 			},
 		}, nil
 	}
@@ -45,7 +39,7 @@ func DetectDeno(workingDir string) (ok bool) {
 		return true
 	}
 
-	denoFound := false
+	detected := false
 	err := filepath.Walk(workingDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -65,12 +59,12 @@ func DetectDeno(workingDir string) (ok bool) {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			if bytes.Contains(scanner.Bytes(), []byte("://deno.land/std")) {
-				denoFound = true
+				detected = true
 				return fmt.Errorf("Deno source found in %v", path)
 			}
 
 			if bytes.Contains(scanner.Bytes(), []byte("Deno.")) {
-				denoFound = true
+				detected = true
 				return fmt.Errorf("Deno source found in %v", path)
 			}
 		}
@@ -81,7 +75,7 @@ func DetectDeno(workingDir string) (ok bool) {
 		fmt.Printf("There was an error scanning the source code: %v", err)
 	}
 
-	return denoFound
+	return detected
 }
 
 func fileExists(path string) bool {

@@ -11,5 +11,7 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-/bin/build
-/bin/detect
+.DS_Store
+.idea
+/bin
+/build

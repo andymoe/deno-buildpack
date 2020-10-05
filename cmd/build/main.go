@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/andymoe/deno-buildpack/deno"
+	"github.com/andymoe/deno-buildpack/internal/deno"
 	"github.com/paketo-buildpacks/packit"
 )
 
