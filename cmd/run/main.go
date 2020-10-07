@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	packit.Detect(deno.Detect())
+	packit.Run(deno.Detect(), deno.Build())
 }
