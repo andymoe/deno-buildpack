@@ -13,3 +13,4 @@ containing [simple deno program](https://deno.land/manual/examples/http_server)
 
 - [Pack](https://buildpacks.io/docs/tools/pack/cli/install/)
 - [Docker](https://docs.docker.com/get-docker/)
+- Some JavaScript or TypeScript you'd like to run with [deno](https://deno.land)
