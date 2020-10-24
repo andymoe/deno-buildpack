@@ -1,7 +1,7 @@
 ## Basic Use
 
 1. Checkout this buildpack repo to a `deno-buildpack` directory.
-1. run `build.sh`
+1. run `scripts/build.sh`
 1. Create a `deno-sample-app` directory with at least a `main.ts` file
 containing [simple deno program](https://deno.land/manual/examples/http_server)
 1. Run `pack set-default-builder paketobuildpacks/builder:base`
