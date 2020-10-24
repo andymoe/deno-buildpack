@@ -10,6 +10,7 @@ import (
 	"github.com/andymoe/deno-buildpack/internal/metadata"
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/fs"
+	"github.com/paketo-buildpacks/packit/pexec"
 )
 
 // Build returns a BuildFunc that provides the deno layer
@@ -37,7 +38,27 @@ func Build() packit.BuildFunc {
 			return buildResult, err
 		}
 
-		command := "deno run --allow-all main.ts"
+		deno := pexec.NewExecutable(filepath.Join(denoLayer.Path, "bin", "deno"))
+
+		denoCache := filepath.Join(denoLayer.Path, "cache")
+		err = os.MkdirAll(denoCache, os.ModePerm)
+		if err != nil {
+			return packit.BuildResult{}, fmt.Errorf("Failed to make deno cache dir in deno layer path: %w", err)
+		}
+
+		os.Setenv("DENO_DIR", denoCache)
+		err = deno.Execute(pexec.Execution{
+			Args:   []string{"cache", "main.ts"},
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+			Dir:    context.WorkingDir,
+		})
+
+		if err != nil {
+			return packit.BuildResult{}, fmt.Errorf("Failed to cache project dependencies: %w", err)
+		}
+
+		command := fmt.Sprintf(`DENO_DIR="%s" deno run --allow-all --cached-only main.ts`, denoCache)
 		return packit.BuildResult{
 			Plan: context.Plan,
 			Layers: []packit.Layer{
