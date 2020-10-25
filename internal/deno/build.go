@@ -38,14 +38,13 @@ func Build() packit.BuildFunc {
 			return buildResult, err
 		}
 
-		deno := pexec.NewExecutable(filepath.Join(denoLayer.Path, "bin", "deno"))
-
 		denoCache := filepath.Join(denoLayer.Path, "cache")
 		err = os.MkdirAll(denoCache, os.ModePerm)
 		if err != nil {
 			return packit.BuildResult{}, fmt.Errorf("Failed to make deno cache dir in deno layer path: %w", err)
 		}
 
+		deno := pexec.NewExecutable(filepath.Join(denoLayer.Path, "bin", "deno"))
 		os.Setenv("DENO_DIR", denoCache)
 		err = deno.Execute(pexec.Execution{
 			Args:   []string{"cache", "main.ts"},
@@ -53,7 +52,6 @@ func Build() packit.BuildFunc {
 			Stderr: os.Stderr,
 			Dir:    context.WorkingDir,
 		})
-
 		if err != nil {
 			return packit.BuildResult{}, fmt.Errorf("Failed to cache project dependencies: %w", err)
 		}
