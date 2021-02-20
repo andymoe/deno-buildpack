@@ -12,5 +12,5 @@ api = "0.2"
 [metadata]
   [[metadata.dependencies]]
     id = "deno"
-    version = '1.7.1'
-    source = "https://github.com/denoland/deno/releases/download/v1.7.1/deno-x86_64-unknown-linux-gnu.zip"
+    version = '1.7.5'
+    source = "https://github.com/denoland/deno/releases/download/v1.7.5/deno-x86_64-unknown-linux-gnu.zip"
