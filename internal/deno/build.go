@@ -23,15 +23,17 @@ func Build() packit.BuildFunc {
 
 		uri := config.Metadata.Dependencies[0].Source
 
-		denoLayer, err := context.Layers.Get("deno", packit.LaunchLayer)
+		denoLayer, err := context.Layers.Get("deno")
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
 
-		err = denoLayer.Reset()
+		denoLayer, err = denoLayer.Reset()
 		if err != nil {
 			return packit.BuildResult{}, err
 		}
+
+		denoLayer.Launch = true
 
 		buildResult, err := InstallDeno(uri, denoLayer)
 		if err != nil {
@@ -44,7 +46,8 @@ func Build() packit.BuildFunc {
 			return packit.BuildResult{}, fmt.Errorf("Failed to make deno cache dir in deno layer path: %w", err)
 		}
 
-		deno := pexec.NewExecutable(filepath.Join(denoLayer.Path, "bin", "deno"))
+		denoExe := filepath.Join(denoLayer.Path, "bin", "deno")
+		deno := pexec.NewExecutable(denoExe)
 		os.Setenv("DENO_DIR", denoCache)
 		err = deno.Execute(pexec.Execution{
 			Args:   []string{"cache", "main.ts"},
@@ -52,21 +55,19 @@ func Build() packit.BuildFunc {
 			Stderr: os.Stderr,
 			Dir:    context.WorkingDir,
 		})
+
 		if err != nil {
 			return packit.BuildResult{}, fmt.Errorf("Failed to cache project dependencies: %w", err)
 		}
 
 		command := fmt.Sprintf(`DENO_DIR="%s" deno run --allow-all --cached-only main.ts`, denoCache)
 		return packit.BuildResult{
-			Plan: context.Plan,
-			Layers: []packit.Layer{
-				denoLayer,
-			},
-			Processes: []packit.Process{
-				{
-					Type:    "web",
-					Command: command,
-				},
+			Plan:   context.Plan,
+			Layers: []packit.Layer{denoLayer},
+			Launch: packit.LaunchMetadata{
+				Processes: []packit.Process{{Type: "web", Command: command}},
+				Slices:    []packit.Slice{},
+				Labels:    map[string]string{},
 			},
 		}, nil
 	}
