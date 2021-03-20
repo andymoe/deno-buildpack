@@ -2,15 +2,14 @@ package deno
 
 import (
 	"fmt"
-	"io/ioutil"
+	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/andymoe/deno-buildpack/internal/metadata"
 	"github.com/paketo-buildpacks/packit"
-	"github.com/paketo-buildpacks/packit/fs"
 	"github.com/paketo-buildpacks/packit/pexec"
+	"github.com/paketo-buildpacks/packit/vacation"
 )
 
 // Build returns a BuildFunc that provides the deno layer
@@ -73,9 +72,8 @@ func Build() packit.BuildFunc {
 	}
 }
 
-// InstallDeno downloads and installs the deno dependency
 func InstallDeno(uri string, denoLayer packit.Layer) (packit.BuildResult, error) {
-	downloadDir, err := ioutil.TempDir("", "downloadDir")
+	downloadDir, err := os.MkdirTemp("", "downloadDir")
 	if err != nil {
 		return packit.BuildResult{}, err
 	}
@@ -83,16 +81,18 @@ func InstallDeno(uri string, denoLayer packit.Layer) (packit.BuildResult, error)
 
 	fmt.Println("Downloading...")
 	fmt.Printf("URI -> %s\n", uri)
-	err = exec.Command("curl", "-L", uri,
-		"--output", filepath.Join(downloadDir, "deno.gz")).Run()
-	if err != nil {
-		return packit.BuildResult{}, fmt.Errorf("failed to download deno with error: %w", err)
+
+	tr := &http.Transport{
+		DisableCompression: true,
 	}
 
-	fmt.Println("Unziping...")
-	err = exec.Command("gunzip", "-d", filepath.Join(downloadDir, "deno.gz")).Run()
+	c := &http.Client{
+		Transport: tr,
+	}
+
+	resp, err := c.Get(uri)
 	if err != nil {
-		return packit.BuildResult{}, fmt.Errorf("Failed to unzip: %w", err)
+		return packit.BuildResult{}, fmt.Errorf("failed to download deno with error: %w", err)
 	}
 
 	err = os.MkdirAll(filepath.Join(denoLayer.Path, "bin"), os.ModePerm)
@@ -100,15 +100,14 @@ func InstallDeno(uri string, denoLayer packit.Layer) (packit.BuildResult, error)
 		return packit.BuildResult{}, fmt.Errorf("Failed to make bin dir in deno layer path: %w", err)
 	}
 
-	denoExeFile := filepath.Join(denoLayer.Path, "bin", "deno")
-	err = fs.Copy(filepath.Join(downloadDir, "deno"), denoExeFile)
-	if err != nil {
-		return packit.BuildResult{}, fmt.Errorf("Failed moving deno binary to denoLayer path: %w", err)
-	}
+	destination := filepath.Join(denoLayer.Path, "bin")
+	archive := vacation.NewArchive(resp.Body)
+	archive.Decompress(destination)
 
-	err = os.Chmod(denoExeFile, 0550)
+	err = os.Chmod(filepath.Join(destination, "deno"), 0550)
 	if err != nil {
 		return packit.BuildResult{}, fmt.Errorf("Failed to make the deno binary executable: %w", err)
 	}
+
 	return packit.BuildResult{}, nil
 }
