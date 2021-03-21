@@ -34,7 +34,7 @@ func Build() packit.BuildFunc {
 
 		denoLayer.Launch = true
 
-		buildResult, err := InstallDeno(uri, denoLayer)
+		buildResult, err := installDeno(uri, denoLayer)
 		if err != nil {
 			return buildResult, err
 		}
@@ -72,16 +72,12 @@ func Build() packit.BuildFunc {
 	}
 }
 
-func InstallDeno(uri string, denoLayer packit.Layer) (packit.BuildResult, error) {
-	downloadDir, err := os.MkdirTemp("", "downloadDir")
-	if err != nil {
-		return packit.BuildResult{}, err
-	}
-	defer os.RemoveAll(downloadDir)
-
+func installDeno(uri string, denoLayer packit.Layer) (packit.BuildResult, error) {
 	fmt.Println("Downloading...")
 	fmt.Printf("URI -> %s\n", uri)
 
+	// disable default decompression since we are not downloading
+	// a gz archive file and will need to decompress it manually
 	tr := &http.Transport{
 		DisableCompression: true,
 	}
@@ -92,15 +88,15 @@ func InstallDeno(uri string, denoLayer packit.Layer) (packit.BuildResult, error)
 
 	resp, err := c.Get(uri)
 	if err != nil {
-		return packit.BuildResult{}, fmt.Errorf("failed to download deno with error: %w", err)
+		return packit.BuildResult{}, fmt.Errorf("Failed to download deno with error: %w", err)
 	}
 
-	err = os.MkdirAll(filepath.Join(denoLayer.Path, "bin"), os.ModePerm)
+	destination := filepath.Join(denoLayer.Path, "bin")
+	err = os.MkdirAll(destination, os.ModePerm)
 	if err != nil {
 		return packit.BuildResult{}, fmt.Errorf("Failed to make bin dir in deno layer path: %w", err)
 	}
 
-	destination := filepath.Join(denoLayer.Path, "bin")
 	archive := vacation.NewArchive(resp.Body)
 	archive.Decompress(destination)
 
